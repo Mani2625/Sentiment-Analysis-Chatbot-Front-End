@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+  "start": "serve -s build -l 8080",
+  "build": "react-scripts build",
     "dev": "vite",
-    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -28,3 +29,4 @@
     "vite": "^7.1.7"
   }
 }
+

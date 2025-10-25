@@ -1,0 +1,6 @@
+# requirements.txt
+flask
+flask-cors
+transformers
+torch
+scikit-learn

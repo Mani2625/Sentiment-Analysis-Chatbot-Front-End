@@ -1,0 +1,61 @@
+/* src/components/MessageBubble.module.css */
+.messageContainer {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+.messageBubble {
+    max-width: 70%;
+    padding: 10px 15px;
+    border-radius: 18px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    position: relative;
+    color: white;
+}
+
+/* --- Bot Styles (Left-Aligned) --- */
+.botMessage {
+    background-color: #3f51b5; /* Primary Blue */
+    margin-right: auto;
+    border-top-left-radius: 4px; /* Pointed edge towards sender */
+}
+.botContainer {
+    justify-content: flex-start;
+}
+
+/* --- User Styles (Right-Aligned) --- */
+.userMessage {
+    background-color: #555; /* Dark Gray */
+    margin-left: auto;
+    border-top-right-radius: 4px; /* Pointed edge towards sender */
+}
+.userContainer {
+    justify-content: flex-end;
+}
+
+/* --- Sentiment-Specific Colors --- */
+.positive {
+    background-color: #4caf50; /* Green */
+}
+.negative {
+    background-color: #f44336; /* Red */
+}
+.analyzing {
+    background-color: #ffc107; /* Yellow */
+}
+
+/* --- Sentiment Indicator --- */
+.sentimentLabel {
+    display: block;
+    margin-top: 5px;
+    font-size: 10px;
+    opacity: 0.8;
+    font-weight: 500;
+}
+
+.senderLabel {
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: 3px;
+    opacity: 0.9;
+}

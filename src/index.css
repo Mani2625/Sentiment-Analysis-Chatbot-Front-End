@@ -1,0 +1,25 @@
+/* src/index.css */
+body {
+    /* Dark background for the entire page */
+    background-color: #1a1a1a;
+    color: #f5f5f5;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Base style for scrollbar (optional but improves look) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #444;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+    background: #2a2a2a;
+}

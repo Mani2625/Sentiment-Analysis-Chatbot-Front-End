@@ -23,7 +23,7 @@ const ChatWindow = () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-    const API_URL = 'http://127.0.0.1:5000/api/chat'; 
+    const API_URL = 'https://sentiment-backend-api-210161969755.asia-south1.run.app'; 
     
     const tempId = Date.now();
     const newMessage = { id: tempId, sender: 'User', text: userMessage, sentiment: 'Analyzing...' };

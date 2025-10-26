@@ -23,23 +23,7 @@ const ChatWindow = () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-    
-    const tempId = Date.now();
-    const newMessage = { id: tempId, sender: 'User', text: userMessage, sentiment: 'Analyzing...' };
-    
-    // 1. Add User Message and start loading
-    setMessages((prev) => [...prev, newMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    // src/components/ChatWindow.jsx (Updated handleSendMessage function)
-
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const userMessage = input.trim();
-    const CLOUD_RUN_API_URL = "https://flask-gemini-backend-210161969755.us-central1.run.app/generate"; // <--- YOUR LIVE ENDPOINT!
+    const API_URL = 'http://127.0.0.1:5000/api/chat'; 
     
     const tempId = Date.now();
     const newMessage = { id: tempId, sender: 'User', text: userMessage, sentiment: 'Analyzing...' };
@@ -50,11 +34,10 @@ const ChatWindow = () => {
     setIsLoading(true);
 
     try {
-        // Send the message to your live Cloud Run API
-        const response = await fetch(CLOUD_RUN_API_URL, {
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: userMessage }), // Send user message
+            body: JSON.stringify({ message: userMessage }),
         });
 
         if (!response.ok) {
@@ -63,16 +46,10 @@ const ChatWindow = () => {
 
         const data = await response.json();
         
-        // 2. Update User Message with real Sentiment and Emoji
+        // 2. Update User Message with real Sentiment
         setMessages(prev => 
             prev.map(msg => 
-                msg.id === tempId 
-                    ? { ...msg, 
-                        // **NOTE:** Ensure these field names match your Python backend's JSON keys!
-                        sentiment: data.sentiment,
-                        sentimentEmoji: data.sentiment_emoji 
-                      } 
-                    : msg
+                msg.id === tempId ? { ...msg, sentiment: data.sentiment } : msg
             )
         );
 
@@ -80,31 +57,31 @@ const ChatWindow = () => {
         const botResponse = { 
             id: Date.now() + 1, 
             sender: 'Bot', 
-            text: data.chatbot_response, // Use the LLM's conversational response
+            text: data.chatbot_response, 
             sentiment: null 
         };
         setMessages(prev => [...prev, botResponse]);
 
     } catch (error) {
-        console.error("Cloud API Error:", error);
-        // Display generic error to the user
-        setMessages(prev => [...prev, {
-            id: Date.now() + 1,
-            sender: 'Bot',
-            text: `Connection failed: Could not reach the live API. Check browser console.`,
-            sentiment: 'ERROR'
-        }]);
-        // Update user message status to ERROR
+        console.error("Chatbot API Error:", error);
+        // Handle error by updating the 'Analyzing...' message
         setMessages(prev => 
             prev.map(msg => 
-                msg.id === tempId ? { ...msg, sentiment: 'ERROR' } : msg
+                msg.id === tempId ? { ...msg, sentiment: 'Error!' } : msg
             )
         );
-
+        const errorBotResponse = {
+            id: Date.now() + 1,
+            sender: 'Bot',
+            text: 'Connection failed. Please ensure the Python API server is running locally.',
+            sentiment: null
+        };
+        setMessages(prev => [...prev, errorBotResponse]);
     } finally {
-        setIsLoading(false); 
+        setIsLoading(false); // Stop loading regardless of success/fail
     }
   };
+
   return (
     <div className={styles.chatContainer}>
       <div className={styles.chatHeader}>

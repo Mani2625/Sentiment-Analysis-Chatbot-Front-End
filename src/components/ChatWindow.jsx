@@ -1,6 +1,7 @@
-// src/components/ChatWindow.jsx (Revised handleSendMessage)
+// src/components/ChatWindow.jsx
 import { useEffect, useRef, useState } from 'react';
 import styles from './ChatWindow.module.css'; // Import CSS Modules
+import MessageBubble from './MessageBubble';
 
 const initialMessages = [
   { id: 1, sender: 'Bot', text: 'Hello! I am a Sentiment Analysis Chatbot. Type a message and I will analyze the emotion.', sentiment: null },
@@ -9,7 +10,7 @@ const initialMessages = [
 const ChatWindow = () => {
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // New state for loading/disabling button
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -22,12 +23,12 @@ const ChatWindow = () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-    const API_URL = "https://sentiment-analysis-backend-210161969755.asia-south1.run.app/api/chat";
+    const API_URL = 'https://sentiment-analysis-backend-210161969755.asia-south1.run.app/api/chat'; 
     
     const tempId = Date.now();
-    // 💡 NEW: Prepare message object to receive the emoji field
-    const newMessage = { id: tempId, sender: 'User', text: userMessage, sentiment: 'Analyzing...', sentimentEmoji: '' }; 
+    const newMessage = { id: tempId, sender: 'User', text: userMessage, sentiment: 'Analyzing...' };
     
+    // 1. Add User Message and start loading
     setMessages((prev) => [...prev, newMessage]);
     setInput('');
     setIsLoading(true);
@@ -45,16 +46,10 @@ const ChatWindow = () => {
 
         const data = await response.json();
         
-        // 2. Update User Message with real Sentiment and Emoji
+        // 2. Update User Message with real Sentiment
         setMessages(prev => 
             prev.map(msg => 
-                msg.id === tempId 
-                    ? { 
-                        ...msg, 
-                        sentiment: data.sentiment.toUpperCase(), // Ensure consistency (POSITIVE, NEGATIVE)
-                        sentimentEmoji: data.sentiment_emoji // Capture the emoji
-                        }
-                    : msg
+                msg.id === tempId ? { ...msg, sentiment: data.sentiment } : msg
             )
         );
 
@@ -62,35 +57,63 @@ const ChatWindow = () => {
         const botResponse = { 
             id: Date.now() + 1, 
             sender: 'Bot', 
-            text: data.chatbot_response, // Captures the full LLM conversational reply
+            text: data.chatbot_response, 
             sentiment: null 
         };
         setMessages(prev => [...prev, botResponse]);
 
     } catch (error) {
         console.error("Chatbot API Error:", error);
-        // Fallback for errors
+        // Handle error by updating the 'Analyzing...' message
         setMessages(prev => 
             prev.map(msg => 
-                msg.id === tempId ? { ...msg, sentiment: 'ERROR', sentimentEmoji: '❌' } : msg
+                msg.id === tempId ? { ...msg, sentiment: 'Error!' } : msg
             )
         );
         const errorBotResponse = {
             id: Date.now() + 1,
             sender: 'Bot',
-            text: 'Connection failed. Please ensure the backend API is running and the URL is correct.',
+            text: 'Connection failed. Please ensure the Python API server is running locally.',
             sentiment: null
         };
         setMessages(prev => [...prev, errorBotResponse]);
     } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Stop loading regardless of success/fail
     }
   };
 
-  // ... rest of the ChatWindow component (return statement) ...
   return (
     <div className={styles.chatContainer}>
-      {/* ... */}
+      <div className={styles.chatHeader}>
+        Sentiment Chatbot 💬
+      </div>
+      
+      {/* Chat History Area */}
+      <div className={styles.chatHistory}>
+        {messages.map((message) => (
+          <MessageBubble key={message.id} message={message} />
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Form */}
+      <form onSubmit={handleSendMessage} className={styles.inputForm}>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder={isLoading ? "Analyzing response..." : "Type your message here..."}
+          className={styles.chatInput}
+          disabled={isLoading}
+        />
+        <button
+          type="submit"
+          className={styles.sendButton}
+          disabled={isLoading || !input.trim()}
+        >
+          {isLoading ? 'Wait...' : 'Send'}
+        </button>
+      </form>
     </div>
   );
 };

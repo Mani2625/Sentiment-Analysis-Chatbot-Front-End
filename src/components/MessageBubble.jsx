@@ -1,10 +1,11 @@
-// src/components/MessageBubble.jsx
+// src/components/MessageBubble.jsx (Revised)
 import React from 'react';
 import styles from './MessageBubble.module.css'; // Import CSS Modules
 
 const MessageBubble = ({ message }) => {
   const isBot = message.sender === 'Bot';
-  const { text, sentiment, sender } = message;
+  // 💡 NEW: Destructure sentimentEmoji from the message object
+  const { text, sentiment, sender, sentimentEmoji } = message; 
 
   // 1. Determine the main container class (for alignment)
   const containerClass = isBot ? styles.botContainer : styles.userContainer;
@@ -14,9 +15,9 @@ const MessageBubble = ({ message }) => {
 
   // 3. Add sentiment color class for user messages
   if (!isBot && sentiment) {
-    if (sentiment === 'Positive') {
+    if (sentiment === 'POSITIVE') { // Ensure POSITIVE is capitalized to match backend
       bubbleClass += ` ${styles.positive}`;
-    } else if (sentiment === 'Negative') {
+    } else if (sentiment === 'NEGATIVE') { // Ensure NEGATIVE is capitalized
       bubbleClass += ` ${styles.negative}`;
     } else if (sentiment === 'Analyzing...') {
         bubbleClass += ` ${styles.analyzing}`;
@@ -34,7 +35,8 @@ const MessageBubble = ({ message }) => {
         {/* Display sentiment for user messages only */}
         {!isBot && sentiment && (
           <span className={styles.sentimentLabel}>
-            Sentiment: {sentiment}
+            {/* 💡 NEW: Render the emoji before the label */}
+            {sentimentEmoji} Sentiment: {sentiment}
           </span>
         )}
       </div>

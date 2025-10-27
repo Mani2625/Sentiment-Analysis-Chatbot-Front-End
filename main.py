@@ -89,8 +89,6 @@ def analyze_sentiment(text):
     )
 
     return final_label, emoji, chatbot_response
-AIzaSyDFw11sdgNWwBRX2luLiXEJbNtQgfVk5Bo
-
 # --- Flask API Endpoint ---
 
 @app.route('/api/chat', methods=['POST'])
@@ -114,7 +112,7 @@ def chat_endpoint():
         'chatbot_response': bot_response
     })
 
-# Run the server locally
-if __name__ == '__main__':
-    print("Starting dual-model Flask server on http://127.0.0.1:5000/api/chat")
-    app.run(debug=True, port=5000)
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 8080))  # Cloud Run provides this
+    app.run(host="0.0.0.0", port=port)

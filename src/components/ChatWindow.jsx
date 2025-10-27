@@ -53,7 +53,7 @@ const ChatWindow = () => {
                         ...msg, 
                         sentiment: data.sentiment.toUpperCase(), // Ensure consistency (POSITIVE, NEGATIVE)
                         sentimentEmoji: data.sentiment_emoji // Capture the emoji
-                      } 
+                        }
                     : msg
             )
         );

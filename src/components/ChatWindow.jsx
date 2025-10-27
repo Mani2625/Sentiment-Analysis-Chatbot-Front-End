@@ -22,12 +22,7 @@ const ChatWindow = () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-<<<<<<< HEAD
-    // 💡 CRITICAL: Replace with your LIVE Cloud Run URL once deployed!
-    const API_URL = "https://sentiment-backend-api-210161969755.us-central1.run.app";
-=======
-    const API_URL = 'https://sentiment-backend-api-210161969755.asia-south1.run.app'; 
->>>>>>> eea71e27fbbda76ccff9ba77ac55af5ec5b77dfe
+    const API_URL = "https://sentiment-analysis-backend-210161969755.asia-south1.run.app/api/chat";
     
     const tempId = Date.now();
     // 💡 NEW: Prepare message object to receive the emoji field

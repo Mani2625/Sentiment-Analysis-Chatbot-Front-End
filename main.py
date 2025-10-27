@@ -1,94 +1,85 @@
-# main.py
+# main.py - Modified for Gemini API
 
+import os
+import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import torch
-from transformers import pipeline
-import pickle
-from sklearn.linear_model import LogisticRegression # Placeholder import for local model
+from google import genai
+from google.genai import types
 
 app = Flask(__name__)
-CORS(app) # Keep CORS enabled for frontend communication
+# CRITICAL: In a real deployment, replace the wildcard with your frontend's URL!
+# We keep the wildcard for demonstration, but allow credentials for better browser compatibility.
+CORS(app, resources={r"/api/*": {"origins": "*", "allow_credentials": True}}) 
 
-# --- Model Initialization ---
+# --- Gemini Initialization ---
 
-# 1. Hugging Face Pre-trained Model (for general sentiment classification)
-# Using a common and lightweight sentiment model
+# 1. Initialize the client (API key must be set as GEMINI_API_KEY environment variable in Cloud Run)
 try:
-    hf_sentiment_pipeline = pipeline(
-        "sentiment-analysis", 
-        model="distilbert-base-uncased-finetuned-sst-2"
-    )
-    print("Hugging Face model loaded successfully.")
+    client = genai.Client()
+    GEMINI_MODEL = "gemini-2.5-flash" 
+    print(f"Gemini client initialized with model: {GEMINI_MODEL}")
 except Exception as e:
-    print(f"Error loading Hugging Face model: {e}")
-    hf_sentiment_pipeline = None
+    # This serves as a fail-safe if the key isn't set
+    print(f"WARNING: Gemini client initialization failed: {e}")
+    client = None
 
-# 2. Local Fine-tuned Model (Simulated)
-# In a real project, you would train and save this. Here we just load a dummy file.
-try:
-    with open('local_model.pkl', 'rb') as f:
-        # Load your actual fine-tuned model here
-        # local_model = pickle.load(f) 
-        # For demonstration, we'll just set a flag
-        local_model_ready = True 
-    print("Local fine-tuned model file simulated successfully.")
-except FileNotFoundError:
-    local_model_ready = False
-    print("WARNING: 'local_model.pkl' not found. Using Hugging Face model exclusively.")
+# --- Sentiment Analysis and Response Generation using Gemini ---
 
-
-# --- Sentiment Analysis and Response Generation ---
-
-def analyze_sentiment(text):
+def get_gemini_response(text):
     """
-    Analyzes sentiment using the Hugging Face model (and potentially a local model).
-    Returns (compound_label, response_emoji).
+    Sends the user text to Gemini for sentiment analysis and a conversational response.
+    Returns (sentiment_label, response_emoji, chatbot_response).
     """
-    if hf_sentiment_pipeline is None:
-        return "Neutral", "❓", "Model Error: HF pipeline failed to load."
+    if client is None:
+        return "ERROR", "❌", "Model Error: Gemini API client not initialized. Check GEMINI_API_KEY."
 
-    # Run analysis with Hugging Face model
-    result = hf_sentiment_pipeline(text)[0]
-    hf_label = result['label']
-    hf_score = result['score']
-    
-    # 💡 Advanced Logic: Combine results (Simulation)
-    # In a real scenario, you'd feed the text to the local model and ensemble the predictions.
-    
-    final_label = hf_label # Default to HF result
-
-    if local_model_ready:
-        # Placeholder for complex ensemble logic:
-        # If HF is very certain (score > 0.98) and Local model agrees, boost confidence.
-        # If HF is uncertain (score < 0.6) and Local model has a clear prediction, use local.
-        pass # Actual logic would go here
-    
-    
-    # Map label to emoji and acknowledgment
-    if final_label == "POSITIVE" and hf_score > 0.9:
-        emoji = "😊"
-        acknowledgment = f"I acknowledge your input and it seems quite positive! "
-    elif final_label == "POSITIVE":
-        emoji = "🙂"
-        acknowledgment = f"That's noted. I sense a generally positive tone. "
-    elif final_label == "NEGATIVE" and hf_score > 0.9:
-        emoji = "😭"
-        acknowledgment = f"I apologize. Your message is strongly negative. "
-    elif final_label == "NEGATIVE":
-        emoji = "🙁"
-        acknowledgment = f"I've noted the negative sentiment in your message. "
-    else: # Default/Ambiguous/Neutral
-        emoji = "😐"
-        acknowledgment = f"Understood. Your message appears neutral. "
-    
-    
-    chatbot_response = (
-        f"{acknowledgment} ({emoji} Confidence: {hf_score:.2f}). "
-        f"How can I continue to assist you?"
+    # System instruction to guide the model to perform two tasks and output JSON
+    system_instruction = (
+        "You are a helpful and friendly sentiment analysis chatbot. "
+        "Your task is to analyze the user's message and provide a response in a single JSON object. "
+        "The JSON MUST contain the following keys: "
+        "'sentiment' (must be 'POSITIVE', 'NEGATIVE', or 'NEUTRAL'), "
+        "'emoji' (a single emoji representing the sentiment), and "
+        "'response' (a short, conversational reply acknowledging the sentiment and responding to the user's message)."
     )
+    
+    prompt = f"Analyze the following text and provide your output as a single, valid JSON object. Text to analyze: \"{text}\""
 
-    return final_label, emoji, chatbot_response
+    try:
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                # Force JSON output for reliable parsing
+                response_mime_type="application/json", 
+                response_schema={
+                    "type": "object",
+                    "properties": {
+                        "sentiment": {"type": "string", "enum": ["POSITIVE", "NEGATIVE", "NEUTRAL"]},
+                        "emoji": {"type": "string"},
+                        "response": {"type": "string"}
+                    },
+                    "required": ["sentiment", "emoji", "response"]
+                }
+            )
+        )
+        
+        # Parse the JSON response text
+        json_data = json.loads(response.text)
+        
+        sentiment_label = json_data.get('sentiment', 'NEUTRAL').upper()
+        sentiment_emoji = json_data.get('emoji', '😐')
+        chatbot_response = json_data.get('response', 'I received your message but could not generate a proper response.')
+
+        return sentiment_label, sentiment_emoji, chatbot_response
+        
+    except Exception as e:
+        print(f"Gemini API call or JSON parsing failed: {e}")
+        return "ERROR", "❌", "Failed to connect to the model or parse its response. Check logs."
+
+
 # --- Flask API Endpoint ---
 
 @app.route('/api/chat', methods=['POST'])
@@ -101,18 +92,18 @@ def chat_endpoint():
         
     user_message = data['message']
 
-    # Analyze Sentiment
-    sentiment_label, sentiment_emoji, bot_response = analyze_sentiment(user_message)
+    # Analyze Sentiment and get conversational response from Gemini
+    sentiment_label, sentiment_emoji, bot_response = get_gemini_response(user_message)
 
     # Return Final JSON Response
     return jsonify({
         'user_message': user_message,
         'sentiment': sentiment_label,
-        'sentiment_emoji': sentiment_emoji, # New field for emoji
+        'sentiment_emoji': sentiment_emoji,
         'chatbot_response': bot_response
     })
 
+# The following is for local testing only. Gunicorn handles production.
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 8080))  # Cloud Run provides this
+    port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)

@@ -1,10 +1,5 @@
 # requirements.txt
 flask
 flask-cors
-transformers
-torch
-scikit-learn
-<<<<<<< HEAD
-gunicorn
-=======
->>>>>>> eea71e27fbbda76ccff9ba77ac55af5ec5b77dfe
+google-genai # New: For the Gemini API
+gunicorn     # New: Production web server for Cloud Run

@@ -1,34 +1,91 @@
-// src/components/ChatWindow.jsx
-import { useEffect, useRef, useState } from 'react';
-import styles from './ChatWindow.module.css'; // Import CSS Modules
-import MessageBubble from './MessageBubble';
-
+// src/components/ChatWindow.jsx (Complete Code for Voice Integration)
+import { useCallback, useEffect, useRef, useState } from 'react';
+import styles from './ChatWindow.module.css';
+import MessageBubble from './MessageBubble'; // Assuming you use this
+let selectedVoice = null;
 const initialMessages = [
-  { id: 1, sender: 'Bot', text: 'Hello! I am a Sentiment Analysis Chatbot. Type a message and I will analyze the emotion.', sentiment: null },
+  { id: 1, sender: 'Bot', text: 'Hello! I am a Sentiment Analysis Chatbot. Type a message or click the microphone button to speak.', sentiment: null },
 ];
+
+// --- Web Speech API Setup ---
+// Check for browser compatibility
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+if (recognition) {
+    recognition.continuous = false; // Stop after a single phrase
+    recognition.interimResults = false; // Only get final results
+    recognition.lang = 'en-US'; // Set language
+}
+// ------------------------------
 
 const ChatWindow = () => {
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // New state for loading/disabling button
+  const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false); // New state for voice
   const messagesEndRef = useRef(null);
+  
+  // NOTE: The backend URL must include the path /api/chat
+  const API_URL = 'https://sentiment-analysis-chatbot-back-end-210161969755.asia-south1.run.app/api/chat';
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-  useEffect(scrollToBottom, [messages]);
+  useEffect(() => {
+        // Function to set the desired voice after they are loaded
+        const setDesiredVoice = () => {
+            const voices = window.speechSynthesis.getVoices();
+            
+            // 💡 Customization Step: Change the voice name here
+            // Common example names: 'Google UK English Female', 'Microsoft Zira - English (United States)'
+            // Use window.speechSynthesis.getVoices() in your browser console to see options
+            const desiredVoiceName = 'Google US English'; // You can change this name
+
+            selectedVoice = voices.find(voice => 
+                voice.name.includes(desiredVoiceName)
+            ) || voices[0]; // Fallback to the first available voice
+            
+            if (selectedVoice) {
+                console.log(`TTS Voice set to: ${selectedVoice.name}`);
+            }
+        };
+
+        // Voices might not load immediately, so wait for the voiceschanged event
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = setDesiredVoice;
+            setDesiredVoice(); // Try to set immediately in case they are already loaded
+        }
+    }, []);
+
+    // Function to speak the bot's response (TTS)
+    const speakResponse = useCallback((text) => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Stop any current speech
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Set the voice we selected in the useEffect hook
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            
+            utterance.rate = 1.1; // Slightly faster for a bot feel
+            utterance.pitch = 1.0; 
+
+            window.speechSynthesis.speak(utterance);
+        }
+    }, []);
+
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-    const API_URL = 'http://127.0.0.1:8080/api/chat'; 
     
     const tempId = Date.now();
-    const newMessage = { id: tempId, sender: 'User', text: userMessage, sentiment: 'Analyzing...' };
+    const newMessage = { id: tempId, sender: 'User', text: userMessage, sentiment: 'Analyzing...', sentimentEmoji: '' }; 
     
-    // 1. Add User Message and start loading
     setMessages((prev) => [...prev, newMessage]);
     setInput('');
     setIsLoading(true);
@@ -41,15 +98,22 @@ const ChatWindow = () => {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+             // If response is not 200-299, throw error to catch block
+            throw new Error(`HTTP error! Status: ${response.status}`);
         }
 
         const data = await response.json();
         
-        // 2. Update User Message with real Sentiment
+        // 2. Update User Message with real Sentiment and Emoji
         setMessages(prev => 
             prev.map(msg => 
-                msg.id === tempId ? { ...msg, sentiment: data.sentiment } : msg
+                msg.id === tempId 
+                    ? { 
+                        ...msg, 
+                        sentiment: data.sentiment.toUpperCase(), 
+                        sentimentEmoji: data.sentiment_emoji 
+                      } 
+                    : msg
             )
         );
 
@@ -61,57 +125,115 @@ const ChatWindow = () => {
             sentiment: null 
         };
         setMessages(prev => [...prev, botResponse]);
+        
+        // Speak the response aloud (TTS)
+        speakResponse(data.chatbot_response); 
 
     } catch (error) {
         console.error("Chatbot API Error:", error);
-        // Handle error by updating the 'Analyzing...' message
+        
+        // Fallback for errors
         setMessages(prev => 
             prev.map(msg => 
-                msg.id === tempId ? { ...msg, sentiment: 'Error!' } : msg
+                msg.id === tempId ? { ...msg, sentiment: 'ERROR', sentimentEmoji: '❌' } : msg
             )
         );
         const errorBotResponse = {
             id: Date.now() + 1,
             sender: 'Bot',
-            text: 'Connection failed. Please ensure the Python API server is running locally.',
+            text: `API call failed. Details: ${error.message}. Check Cloud Run logs.`,
             sentiment: null
         };
         setMessages(prev => [...prev, errorBotResponse]);
     } finally {
-        setIsLoading(false); // Stop loading regardless of success/fail
+        setIsLoading(false);
     }
+  };
+
+  const handleVoiceInput = () => {
+    if (!recognition) {
+        alert("Speech Recognition is not supported by your browser.");
+        return;
+    }
+
+    if (isListening) {
+        recognition.stop();
+        setIsListening(false);
+        return;
+    }
+
+    // Clear any previous input and start listening
+    setInput(''); 
+    setIsListening(true);
+    recognition.start();
+
+    // Event handler for when speech is recognized
+    recognition.onresult = (event) => {
+      const spokenText = event.results[0][0].transcript;
+      setInput(spokenText);
+      recognition.stop();
+      setIsListening(false);
+
+      // Programmatically submit the form once voice input is done
+      // Use the logic directly here since we need the event object for preventDefault
+      handleSendMessage({
+          preventDefault: () => {}, 
+          currentTarget: { name: 'submit' } 
+      });
+    };
+
+    // Event handler for when listening stops naturally or due to error
+    recognition.onend = () => {
+        setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        alert(`Voice Error: ${event.error}`);
+    };
   };
 
   return (
     <div className={styles.chatContainer}>
-      <div className={styles.chatHeader}>
-        Sentiment Chatbot 💬
-      </div>
+      <header className={styles.chatHeader}>
+        Sentiment Analysis Chatbot 🤖
+      </header>
       
-      {/* Chat History Area */}
       <div className={styles.chatHistory}>
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+        {messages.map((msg) => (
+          <MessageBubble key={msg.id} message={msg} />
         ))}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Form */}
-      <form onSubmit={handleSendMessage} className={styles.inputForm}>
+      <form className={styles.inputForm} onSubmit={handleSendMessage}>
+        {/* New Microphone Button */}
+        <button 
+          type="button" 
+          onClick={handleVoiceInput} 
+          className={`${styles.micButton} ${isListening ? styles.listening : ''}`}
+          title={isListening ? "Stop Listening" : "Start Voice Input"}
+          disabled={isLoading}
+        >
+          {isListening ? '🛑' : '🎙️'}
+        </button>
+
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={isLoading ? "Analyzing response..." : "Type your message here..."}
+          placeholder={isListening ? "Listening... speak now" : "Type your message or use mic..."}
           className={styles.chatInput}
-          disabled={isLoading}
+          disabled={isListening || isLoading}
         />
+
         <button
-          type="submit"
-          className={styles.sendButton}
-          disabled={isLoading || !input.trim()}
+          type="submit" 
+          className={styles.sendButton} 
+          disabled={!input.trim() || isLoading || isListening}
         >
-          {isLoading ? 'Wait...' : 'Send'}
+          {isLoading ? 'Sending...' : 'Send'}
         </button>
       </form>
     </div>

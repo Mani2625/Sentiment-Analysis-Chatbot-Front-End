@@ -26,8 +26,12 @@ const ChatWindow = () => {
   const [isListening, setIsListening] = useState(false); // New state for voice
   const messagesEndRef = useRef(null);
   
-  // NOTE: The backend URL must include the path /api/chat
-  const API_URL = "http://127.0.0.1:5001/api/chat";
+  // Detect environment and set backend URL dynamically
+const API_URL =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://127.0.0.1:5001/api/chat"
+    : "https://sentiment-analysis-chatbot-back-end-210161969755.asia-south1.run.app/api/chat";
+
 
 
   const scrollToBottom = () => {

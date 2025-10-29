@@ -1,32 +1,23 @@
-/* src/components/ChatWindow.module.css */
+/* src/components/ChatWindow.module.css (FIXED AND ENHANCED) */
+
+/* --------------------------------------------------------------------- */
+/* --- 1. BASE STYLES (Applies to ALL, setting PC/Normal Chat Defaults) --- */
+/* --------------------------------------------------------------------- */
 .chatContainer {
     display: flex;
     flex-direction: column;
-    /* Fixed chat window height */
-    height: 90%; 
+    /* Default height for PC/Large Screens */
+    height: 90vh; 
     
-    /* MODIFIED: Set width to 75% of the viewport width */
-    width: 105%; 
+    /* PC/Desktop Style: Set to a reasonable width and center it */
+    width: 600px; /* Standard width for a chat app on desktop */
+    max-width: 90%; /* Ensures it shrinks on narrow desktops */
+    margin: 30px auto; /* Centers the window horizontally */
     
-    /* Ensure it doesn't get too wide on huge screens */
-    max-width: 1900px; 
-    
-    background-color: #2a2a2a; 
+    background-color: #2a2a2a; /* Dark background */
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     overflow: hidden;
-}
-
-/* 💡 Optional Improvement: 
-To ensure a good mobile experience, you should add a media query 
-to keep it narrow on small screens. Add this to the bottom of the file:
-*/
-@media (max-width: 600px) {
-    .chatContainer {
-        width: 75%; /* Take up 95% of screen on small devices */
-        height: 90%;
-        border-radius: 2%;
-    }
 }
 
 .chatHeader {
@@ -43,6 +34,7 @@ to keep it narrow on small screens. Add this to the bottom of the file:
     flex-grow: 1;
     overflow-y: auto;
     padding: 20px;
+    background-color: #1a1a1a; /* Slightly lighter than the container for contrast */
 }
 
 .inputForm {
@@ -57,7 +49,7 @@ to keep it narrow on small screens. Add this to the bottom of the file:
     flex-grow: 1;
     padding: 12px;
     border: 1px solid #444;
-    border-radius: 8px;
+    border-radius: 24px; /* More rounded for modern look */
     background-color: #3a3a3a;
     color: white;
     font-size: 16px;
@@ -89,29 +81,32 @@ to keep it narrow on small screens. Add this to the bottom of the file:
     cursor: not-allowed;
 }
 
-/* src/components/ChatWindow.module.css (Additions) */
-
+/* --------------------------------------------------------------------- */
+/* --- 2. VOICE BUTTON STYLES (Minor tweaks for appeal) --- */
+/* --------------------------------------------------------------------- */
 .micButton {
     padding: 12px 15px;
-    background-color: #f4433600; /* Red for Stop/Mic */
-    color: white;
-    font-size: 16px;
+    background-color: transparent; /* Keep background transparent */
+    color: #64b5f6; /* Use branding color for mic icon */
+    font-size: 18px;
     border: none;
-    border-radius: 8px;
+    border-radius: 50%; /* Circular button */
     cursor: pointer;
     transition: background-color 0.2s;
-    width: 50px; /* fixed width */
+    width: 48px; /* fixed width */
+    height: 48px; /* fixed height */
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0; /* Prevents button from shrinking */
 }
 
 .micButton:hover {
-    background-color: #fff2f200;
+    background-color: #ffffff1a; /* Slight hover effect */
 }
 
 .micButton.listening {
-    background-color: #000000; /* Orange while recording */
+    background-color: #ff9800; /* Orange while recording */
     animation: pulse 1s infinite alternate;
 }
 
@@ -121,5 +116,81 @@ to keep it narrow on small screens. Add this to the bottom of the file:
     }
     100% {
         box-shadow: 0 0 0 10px rgba(255, 152, 0, 0);
+    }
+}
+
+
+/* --------------------------------------------------------------------- */
+/* --- 3. WHATSAPP MOBILE STYLES (max-width: 600px) --- */
+/* --------------------------------------------------------------------- */
+@media (max-width: 600px) {
+    .chatContainer {
+        /* Mobile Style: Take up almost the full screen */
+        width: 100vw; /* 100% of viewport width */
+        height: 100vh; /* 100% of viewport height */
+        max-width: none; /* No max width constraint */
+        margin: 0; /* Remove outside margins */
+        border-radius: 0; /* Square edges like a full-screen app */
+        box-shadow: none; /* No shadow needed in full-screen */
+    }
+
+    .chatHeader {
+        /* Thinner, more compact header */
+        padding: 12px 10px;
+        font-size: 20px;
+        /* WhatsApp-like color scheme */
+        background-color: #075E54; /* Dark Teal/Green header */
+        color: white;
+        border-bottom: none;
+    }
+
+    .chatHistory {
+        padding: 10px;
+        /* WhatsApp background pattern (you'd normally use an image) */
+        background-color: #3b3b3b; /* Darker, neutral chat background */
+    }
+
+    .inputForm {
+        padding: 8px 10px;
+        background-color: #1f1f1f;
+    }
+    
+    .chatInput {
+        /* Smaller, more compact input field */
+        padding: 10px 15px;
+        margin-right: 5px; /* Space between input and buttons */
+    }
+
+    .sendButton {
+        padding: 10px;
+        width: 45px; /* Make the button circular and compact */
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%; /* Circular button */
+        flex-shrink: 0;
+        font-size: 0; /* Hide 'Send' text */
+        background-color: #075E54; /* WhatsApp button color */
+    }
+    
+    /* Add a Paper Plane icon style for the mobile send button */
+    .sendButton::after {
+        content: '✈️'; /* Or use an actual send icon font/svg */
+        font-size: 20px;
+        line-height: 1;
+        color: white;
+    }
+    
+    .micButton {
+        /* Make mic button circular and compact like the send button */
+        width: 45px; 
+        height: 45px;
+        color: white; /* White icon */
+        background-color: #075E54; /* WhatsApp button color */
+    }
+    
+    .micButton.listening {
+        background-color: #ff9800; 
     }
 }

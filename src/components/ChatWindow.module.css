@@ -3,10 +3,10 @@
     display: flex;
     flex-direction: column;
     /* Fixed chat window height */
-    height: 90vh; 
+    height: 90%; 
     
     /* MODIFIED: Set width to 75% of the viewport width */
-    width: 75vw; 
+    width: 105%; 
     
     /* Ensure it doesn't get too wide on huge screens */
     max-width: 1900px; 
@@ -23,9 +23,9 @@ to keep it narrow on small screens. Add this to the bottom of the file:
 */
 @media (max-width: 600px) {
     .chatContainer {
-        width: 95vw; /* Take up 95% of screen on small devices */
-        height: 100vh;
-        border-radius: 0;
+        width: 75%; /* Take up 95% of screen on small devices */
+        height: 90%;
+        border-radius: 2%;
     }
 }
 

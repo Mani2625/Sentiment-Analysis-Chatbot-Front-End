@@ -27,7 +27,8 @@ const ChatWindow = () => {
   const messagesEndRef = useRef(null);
   
   // NOTE: The backend URL must include the path /api/chat
-  const API_URL = 'https://sentiment-analysis-chatbot-back-end-210161969755.asia-south1.run.app/api/chat';
+  const API_URL = "http://127.0.0.1:5001/api/chat";
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
